@@ -4,526 +4,180 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NEET 2026 Rank Predictor</title>
-  <meta name="description" content="Predict your All India Rank for NEET 2026 using ML trained on 5 years of historical data." />
+  <meta name="description" content="Predict your All India Rank for NEET 2026 using ML trained on 5 years of historical NTA data." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:        #06060f;
-      --bg2:       #0d0d1a;
-      --glass:     rgba(255,255,255,0.045);
-      --glass-b:   rgba(255,255,255,0.09);
-      --border:    rgba(255,255,255,0.08);
-      --blue:      #4F8EF7;
-      --indigo:    #6C63FF;
-      --teal:      #00D2C8;
-      --green:     #4ADE80;
-      --text:      #E8EAF6;
-      --muted:     #7B8299;
-      --radius:    18px;
-      --radius-sm: 10px;
+      --bg: #0a0a0a; --surface: #111111; --surface2: #181818;
+      --border: #222222; --border2: #2a2a2a;
+      --text: #e8e8e8; --text2: #888888; --muted: #555555;
+      --green: #4ade80; --blue: #60a5fa; --amber: #fbbf24; --red: #f87171;
+      --r: 8px; --r-sm: 5px;
     }
+    body { font-family: 'Geist', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    .page { max-width: 880px; margin: 0 auto; padding: 0 20px 80px; }
 
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+    /* Header */
+    header { padding: 52px 0 36px; border-bottom: 1px solid var(--border); margin-bottom: 36px; }
+    .header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 100px; padding: 4px 12px; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: var(--text2); text-transform: uppercase; }
+    .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s ease infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 8px; }
+    .subtitle { color: var(--text2); font-size: .9rem; line-height: 1.65; max-width: 480px; }
 
-    /* ── Animated Background ─────────────────────────────── */
-    .bg-orbs {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      overflow: hidden;
-    }
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.18;
-      animation: drift 18s ease-in-out infinite alternate;
-    }
-    .orb1 { width: 600px; height: 600px; background: #4F46E5; top: -200px; left: -200px; animation-duration: 20s; }
-    .orb2 { width: 500px; height: 500px; background: #06B6D4; bottom: -150px; right: -150px; animation-duration: 25s; animation-delay: -8s; }
-    .orb3 { width: 350px; height: 350px; background: #A855F7; top: 40%; left: 50%; transform: translate(-50%,-50%); animation-duration: 15s; animation-delay: -4s; }
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:680px){ .grid { grid-template-columns: 1fr; } }
 
-    @keyframes drift {
-      0%   { transform: translate(0,0) scale(1); }
-      100% { transform: translate(40px, 30px) scale(1.08); }
-    }
+    /* Panel */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; }
+    .panel-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 20px; }
 
-    /* ── Layout ──────────────────────────────────────────── */
-    .container {
-      position: relative; z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 24px 80px;
-    }
+    /* Fields */
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; letter-spacing: .02em; }
+    .slider-row { display: flex; align-items: center; gap: 12px; }
+    .slider-num { font-family: 'Geist Mono', monospace; font-size: 1rem; font-weight: 500; color: var(--text); min-width: 36px; text-align: right; }
+    input[type=range] { -webkit-appearance: none; flex: 1; height: 3px; border-radius: 2px; background: var(--border2); outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--text); cursor: pointer; transition: transform .15s; box-shadow: 0 0 0 3px var(--bg); }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
-    /* ── Header ──────────────────────────────────────────── */
-    header {
-      text-align: center;
-      padding: 64px 0 40px;
-    }
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(79,142,247,0.12);
-      border: 1px solid rgba(79,142,247,0.3);
-      border-radius: 100px;
-      padding: 6px 16px;
-      font-size: 13px; font-weight: 500;
-      color: var(--blue);
-      margin-bottom: 20px;
-    }
-    .badge span { width: 7px; height: 7px; background: var(--blue); border-radius: 50%; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+    .seg { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 3px; }
+    .seg-btn { flex: 1; padding: 7px 0; border: none; border-radius: 4px; background: transparent; color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .18s; font-family: inherit; }
+    .seg-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+    .seg-btn:hover:not(.active) { color: var(--text); }
 
-    h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(2rem, 5vw, 3.4rem);
-      font-weight: 700;
-      line-height: 1.15;
-      background: linear-gradient(135deg, #fff 30%, #A5B4FC 70%, #67E8F9);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 14px;
+    input[type=number], input[type=text], input[type=email], input[type=tel] {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: var(--r-sm); color: var(--text); font-size: 14px;
+      font-family: inherit; padding: 9px 12px; outline: none; transition: border-color .2s;
     }
-    .subtitle {
-      color: var(--muted);
-      font-size: 1.05rem;
-      max-width: 500px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
+    input[type=number] { font-family: 'Geist Mono', monospace; }
+    input:focus { border-color: var(--text2); }
+    input[type=number]::-webkit-inner-spin-button { opacity: .3; }
+    input::placeholder { color: var(--muted); }
 
-    /* ── Main Grid ───────────────────────────────────────── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      margin-top: 40px;
-    }
-    @media(max-width: 740px) { .main-grid { grid-template-columns: 1fr; } }
-
-    /* ── Glass Card ──────────────────────────────────────── */
-    .card {
-      background: var(--glass);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 32px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-    .card-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 28px;
-    }
-
-    /* ── Form Controls ───────────────────────────────────── */
-    .field { margin-bottom: 22px; }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--muted);
-      margin-bottom: 8px;
-      letter-spacing: 0.03em;
-    }
-
-    /* Slider */
-    .slider-wrap { position: relative; }
-    .slider-val {
-      position: absolute;
-      right: 0; top: -28px;
-      font-size: 22px;
-      font-weight: 700;
-      font-family: 'Space Grotesk', sans-serif;
-      color: var(--text);
-    }
-    input[type=range] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.1);
-      outline: none;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue), var(--indigo));
-      box-shadow: 0 0 12px rgba(79,142,247,0.5);
-      cursor: pointer;
-      transition: transform .15s;
-    }
-    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-    /* Segmented control */
-    .seg-group {
-      display: flex;
-      gap: 8px;
-    }
-    .seg-btn {
-      flex: 1;
-      padding: 10px 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all .2s;
-      font-family: inherit;
-    }
-    .seg-btn.active {
-      background: linear-gradient(135deg, var(--blue), var(--indigo));
-      border-color: transparent;
-      color: #fff;
-      box-shadow: 0 4px 16px rgba(79,142,247,0.35);
-    }
-    .seg-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
-
-    /* Number input */
-    input[type=number] {
-      width: 100%;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 15px;
-      font-family: inherit;
-      padding: 12px 16px;
-      outline: none;
-      transition: border-color .2s;
-    }
-    input[type=number]:focus { border-color: var(--blue); }
-    input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
-
-    /* ── Predict Button ──────────────────────────────────── */
-    .btn-predict {
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      font-family: 'Space Grotesk', sans-serif;
-      cursor: pointer;
-      letter-spacing: 0.03em;
-      transition: all .25s;
-      position: relative;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .btn-predict::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: rgba(255,255,255,0.1);
-      opacity: 0;
-      transition: opacity .2s;
-    }
-    .btn-predict:hover::before { opacity: 1; }
-    .btn-predict:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(79,142,247,0.4); }
-    .btn-predict:active { transform: translateY(0); }
-    .btn-predict.loading { pointer-events: none; }
-    .btn-predict .spinner {
-      display: none;
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      margin: 0 auto;
-    }
+    .btn-predict { width: 100%; padding: 12px; border: 1px solid var(--border2); border-radius: var(--r-sm); background: var(--text); color: var(--bg); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-predict:hover { background: #d0d0d0; }
+    .btn-predict:active { transform: scale(.99); }
+    .btn-predict.loading { pointer-events: none; opacity: .7; }
+    .btn-predict .spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,.2); border-top-color: var(--bg); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .btn-predict.loading .btn-text { display: none; }
     .btn-predict.loading .spinner { display: block; }
 
-    /* ── Result Card ─────────────────────────────────────── */
-    #result-card {
-      transition: all .4s cubic-bezier(.22,.68,0,1.2);
-      opacity: 0;
-      transform: translateY(20px) scale(0.97);
-      pointer-events: none;
-    }
-    #result-card.visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
+    /* Result */
+    #result-panel { opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; pointer-events: none; }
+    #result-panel.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .rank-hero { text-align: center; padding: 8px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+    .rank-eyebrow { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 6px; }
+    .rank-num { font-family: 'Geist Mono', monospace; font-size: clamp(2.4rem,6vw,3.6rem); font-weight: 500; line-height: 1; margin-bottom: 8px; animation: pop .4s cubic-bezier(.22,.68,0,1.2); }
+    @keyframes pop { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+    .rank-range { font-size: 12px; color: var(--text2); font-family: 'Geist Mono', monospace; margin-bottom: 10px; }
+    .cat-tag { display: inline-block; padding: 4px 14px; border-radius: 100px; font-size: 12px; font-weight: 500; border: 1px solid; letter-spacing: .02em; }
+    .rank-bar-wrap { margin-bottom: 18px; }
+    .rank-bar-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+    .rank-bar-track { height: 3px; background: var(--border2); border-radius: 2px; }
+    .rank-bar-fill { height: 100%; border-radius: 2px; background: var(--text); transition: width 1s cubic-bezier(.22,.68,0,1.1); }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 14px; }
+    .stat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+    .stat-val { font-family: 'Geist Mono', monospace; font-size: 1.05rem; font-weight: 500; }
 
-    .rank-display {
-      text-align: center;
-      padding: 12px 0 24px;
-    }
-    .rank-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-    .rank-number {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(2.8rem, 7vw, 4.5rem);
-      font-weight: 700;
-      line-height: 1;
-      background: linear-gradient(135deg, #fff, #A5B4FC);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 6px;
-      animation: countUp .8s ease-out;
-    }
-    @keyframes countUp { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+    /* Register card */
+    #register-card { margin-top: 16px; opacity: 0; transform: translateY(8px); transition: opacity .4s .1s, transform .4s .1s; pointer-events: none; }
+    #register-card.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .register-inner { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; }
+    .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media(max-width:580px){ .reg-grid { grid-template-columns: 1fr; } }
+    .reg-grid .field { margin-bottom: 0; }
+    .btn-submit { width: 100%; margin-top: 14px; padding: 11px; border: 1px solid var(--border2); border-radius: var(--r-sm); background: transparent; color: var(--text); font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-submit:hover { background: var(--surface2); border-color: var(--text2); }
+    .btn-submit.loading { pointer-events: none; opacity: .6; }
+    .btn-submit.loading .btn-text { display: none; }
+    .btn-submit.loading .spinner { display: block; }
+    .btn-submit .spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.15); border-top-color: var(--text); border-radius: 50%; animation: spin .6s linear infinite; }
 
-    .rank-range {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 16px;
-    }
+    /* Success state */
+    .success-msg { display: none; text-align: center; padding: 16px 0 4px; }
+    .success-msg .check { font-size: 1.8rem; margin-bottom: 6px; }
+    .success-msg p { font-size: 13px; color: var(--text2); }
+    .success-msg strong { color: var(--green); font-weight: 500; }
 
-    .category-badge {
-      display: inline-block;
-      padding: 8px 20px;
-      border-radius: 100px;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      border: 1.5px solid;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 20px 0;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    .stat-box {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-    }
-    .stat-label {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-    .stat-value {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    /* ── Rank Bar ────────────────────────────────────────── */
-    .rank-bar-wrap { margin-top: 20px; }
-    .rank-bar-label {
-      display: flex; justify-content: space-between;
-      font-size: 12px; color: var(--muted);
-      margin-bottom: 8px;
-    }
-    .rank-bar-track {
-      height: 8px;
-      background: rgba(255,255,255,0.07);
-      border-radius: 4px;
-      overflow: visible;
-      position: relative;
-    }
-    .rank-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      background: linear-gradient(90deg, var(--green), var(--teal), var(--blue), var(--indigo));
-      background-size: 200% 100%;
-      animation: shimmer 2.5s linear infinite;
-      transition: width 1s cubic-bezier(.22,.68,0,1.1);
-    }
-    @keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
-    .rank-bar-thumb {
-      position: absolute;
-      top: 50%; transform: translate(-50%, -50%);
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 0 10px rgba(255,255,255,0.5);
-      transition: left 1s cubic-bezier(.22,.68,0,1.1);
-    }
-
-    /* ── Rank Table ──────────────────────────────────────── */
-    .table-section { margin-top: 28px; }
-    .table-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px;
-    }
-    .table-header h2 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.2rem; font-weight: 600;
-    }
-    .btn-table {
-      padding: 8px 18px;
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      background: var(--glass);
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all .2s;
-    }
-    .btn-table:hover { border-color: var(--blue); color: var(--blue); }
-
-    .rank-table-wrap {
-      overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      max-height: 0;
-      transition: max-height .5s ease;
-    }
-    .rank-table-wrap.open { max-height: 600px; overflow-y: auto; }
-    .rank-table-wrap::-webkit-scrollbar { width: 5px; }
-    .rank-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13.5px;
-      table-layout: fixed;
-    }
-    col.col-marks  { width: 14%; }
-    col.col-rank   { width: 22%; }
-    col.col-range  { width: 30%; }
-    col.col-admit  { width: 34%; }
+    /* Table */
+    .table-section { margin-top: 24px; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .table-header h2 { font-size: 13px; font-weight: 500; color: var(--text2); }
+    .btn-toggle { padding: 6px 14px; border: 1px solid var(--border2); border-radius: 100px; background: transparent; color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .18s; }
+    .btn-toggle:hover { border-color: var(--text2); color: var(--text); }
+    .table-wrap { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; max-height: 0; transition: max-height .5s ease; }
+    .table-wrap.open { max-height: 520px; overflow-y: auto; }
+    .table-wrap::-webkit-scrollbar { width: 4px; }
+    .table-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+    col.c-marks{width:14%} col.c-rank{width:22%} col.c-range{width:28%} col.c-admit{width:36%}
     thead { position: sticky; top: 0; z-index: 1; }
-    th {
-      background: rgba(79,142,247,0.12);
-      padding: 12px 16px;
-      text-align: left;
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    td {
-      padding: 11px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    tr:hover td { background: rgba(255,255,255,0.03); }
-    tr.highlight td { background: rgba(79,142,247,0.08); }
-    .dot {
-      display: inline-block;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      margin-right: 6px;
-      vertical-align: middle;
-      flex-shrink: 0;
-    }
+    th { background: var(--surface2); padding: 10px 14px; text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    td:first-child { font-family: 'Geist Mono', monospace; color: var(--text); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    .dot-sm { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 
-    /* ── Footer ──────────────────────────────────────────── */
-    footer {
-      text-align: center;
-      padding: 40px 0 20px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.8;
-    }
-    footer a { color: var(--blue); text-decoration: none; }
-
-    /* ── Responsive ──────────────────────────────────────── */
-    @media(max-width: 480px) {
-      .stats-grid { grid-template-columns: 1fr; }
-      .card { padding: 22px 18px; }
-    }
+    footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 12px; line-height: 1.9; }
+    footer a { color: var(--text2); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+    @media(max-width:480px){ .panel{padding:18px 16px} header{padding:36px 0 24px} }
   </style>
 </head>
 <body>
-
-<!-- Animated background -->
-<div class="bg-orbs">
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
-</div>
-
-<div class="container">
+<div class="page">
 
   <!-- Header -->
   <header>
-    <div class="badge"><span></span> NEET 2026 · AI Rank Predictor</div>
-    <h1>Predict Your NEET 2026<br>All India Rank</h1>
-    <p class="subtitle">ML ensemble trained on 5 years of official NTA data (2021–2025). Enter your score and exam parameters to get your predicted AIR.</p>
+    <div class="header-top">
+      <div class="pill"><span class="pill-dot"></span> ML Powered</div>
+    </div>
+    <h1>NEET 2026 Rank Predictor</h1>
+    <p class="subtitle">Ensemble model trained on 5 years of official NTA data (2021–2025). Enter your score and exam parameters to estimate your All India Rank.</p>
   </header>
 
   <!-- Main Grid -->
-  <div class="main-grid">
+  <div class="grid">
 
-    <!-- Left: Input Form -->
-    <div class="card">
-      <div class="card-title">Your Details</div>
+    <!-- Input Panel -->
+    <div class="panel">
+      <div class="panel-label">Input Parameters</div>
 
-      <!-- Marks Slider -->
       <div class="field">
-        <label>NEET Score</label>
-        <div class="slider-wrap">
-          <div class="slider-val" id="marks-val">580</div>
+        <label>NEET Score (0 – 720)</label>
+        <div class="slider-row">
           <input type="range" id="marks-slider" min="0" max="720" step="1" value="580"
             oninput="document.getElementById('marks-val').textContent=this.value" />
+          <div class="slider-num" id="marks-val">580</div>
         </div>
       </div>
 
-      <!-- Difficulty -->
       <div class="field">
         <label>Paper Difficulty</label>
-        <div class="seg-group" id="diff-group">
+        <div class="seg" id="diff-group">
           <button class="seg-btn" data-val="easy" onclick="selectDiff(this)">Easy</button>
           <button class="seg-btn active" data-val="moderate" onclick="selectDiff(this)">Moderate</button>
           <button class="seg-btn" data-val="hard" onclick="selectDiff(this)">Hard</button>
         </div>
       </div>
 
-      <!-- Total Appeared -->
       <div class="field">
         <label>Total Appeared (in Lakhs)</label>
         <input type="number" id="appeared" value="25.5" step="0.1" min="10" max="35" />
       </div>
 
-      <!-- Top Score -->
       <div class="field">
         <label>Estimated Top Score</label>
-        <div class="seg-group" id="top-group">
+        <div class="seg" id="top-group">
           <button class="seg-btn" data-val="686" onclick="selectTop(this)">686</button>
           <button class="seg-btn" data-val="715" onclick="selectTop(this)">715</button>
           <button class="seg-btn active" data-val="720" onclick="selectTop(this)">720</button>
@@ -531,78 +185,91 @@
       </div>
 
       <button class="btn-predict" id="predict-btn" onclick="predict()">
-        <span class="btn-text">Predict My Rank</span>
+        <span class="btn-text">Predict Rank</span>
         <div class="spinner"></div>
       </button>
     </div>
 
-    <!-- Right: Result -->
-    <div class="card" id="result-card">
-      <div class="card-title">Prediction Result</div>
+    <!-- Result Panel -->
+    <div class="panel" id="result-panel">
+      <div class="panel-label">Prediction Result</div>
 
-      <div class="rank-display">
-        <div class="rank-label">All India Rank</div>
-        <div class="rank-number" id="res-rank">—</div>
+      <div class="rank-hero">
+        <div class="rank-eyebrow">All India Rank</div>
+        <div class="rank-num" id="res-rank">—</div>
         <div class="rank-range" id="res-range">Range: — to —</div>
-        <span class="category-badge" id="res-cat">—</span>
+        <span class="cat-tag" id="res-cat">—</span>
       </div>
 
-      <!-- Rank bar -->
       <div class="rank-bar-wrap">
-        <div class="rank-bar-label">
-          <span>Rank 1 (Best)</span>
-          <span>Rank 10L (Low)</span>
-        </div>
+        <div class="rank-bar-meta"><span>Rank 1</span><span>Rank 10L</span></div>
         <div class="rank-bar-track">
           <div class="rank-bar-fill" id="rank-bar" style="width:0%"></div>
-          <div class="rank-bar-thumb" id="rank-thumb" style="left:0%"></div>
         </div>
       </div>
 
-      <div class="divider"></div>
-
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-label">Percentile</div>
-          <div class="stat-value" id="res-pct">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Paper</div>
-          <div class="stat-value" id="res-diff">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Score</div>
-          <div class="stat-value" id="res-score">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Appeared</div>
-          <div class="stat-value" id="res-appeared">—</div>
-        </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-lbl">Percentile</div><div class="stat-val" id="res-pct">—</div></div>
+        <div class="stat"><div class="stat-lbl">Difficulty</div><div class="stat-val" id="res-diff">—</div></div>
+        <div class="stat"><div class="stat-lbl">Score</div><div class="stat-val" id="res-score">—</div></div>
+        <div class="stat"><div class="stat-lbl">Appeared</div><div class="stat-val" id="res-appeared">—</div></div>
       </div>
     </div>
   </div>
 
-  <!-- Rank Table -->
+  <!-- Register Card (appears after prediction) -->
+  <div id="register-card">
+    <div class="register-inner">
+      <div class="panel-label">Save Your Result &amp; Register</div>
+
+      <div id="reg-form-body">
+        <div class="reg-grid">
+          <div class="field">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" placeholder="Arjun Sharma" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="reg-college">School / College</label>
+            <input type="text" id="reg-college" placeholder="Delhi Public School" />
+          </div>
+          <div class="field">
+            <label for="reg-phone">Phone Number</label>
+            <input type="tel" id="reg-phone" placeholder="+91 98765 43210" autocomplete="tel" />
+          </div>
+          <div class="field">
+            <label for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <p id="reg-error" style="display:none;font-size:12px;color:var(--red);margin-top:10px;"></p>
+
+        <button class="btn-submit" id="submit-btn" onclick="submitData()">
+          <span class="btn-text">Save My Result</span>
+          <div class="spinner"></div>
+        </button>
+      </div>
+
+      <div class="success-msg" id="success-msg">
+        <div class="check">✓</div>
+        <p>Saved! <strong id="success-name"></strong>, your result has been recorded.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
   <div class="table-section">
     <div class="table-header">
-      <h2>Full Rank Table (All Scores)</h2>
-      <button class="btn-table" id="table-btn" onclick="toggleTable()">Show Table</button>
+      <h2>Full Rank Table · All Scores</h2>
+      <button class="btn-toggle" id="table-btn" onclick="toggleTable()">Show Table</button>
     </div>
-    <div class="rank-table-wrap" id="table-wrap">
+    <div class="table-wrap" id="table-wrap">
       <table>
         <colgroup>
-          <col class="col-marks" />
-          <col class="col-rank" />
-          <col class="col-range" />
-          <col class="col-admit" />
+          <col class="c-marks" /><col class="c-rank" /><col class="c-range" /><col class="c-admit" />
         </colgroup>
         <thead>
-          <tr>
-            <th>Marks</th>
-            <th>Predicted Rank</th>
-            <th>Range (±15%)</th>
-            <th>Admission</th>
-          </tr>
+          <tr><th>Marks</th><th>Predicted Rank</th><th>Range (±15%)</th><th>Admission</th></tr>
         </thead>
         <tbody id="table-body"></tbody>
       </table>
@@ -610,8 +277,8 @@
   </div>
 
   <footer>
-    <p>ML ensemble: GradientBoosting + RandomForest + XGBoost &nbsp;·&nbsp; Trained on NTA data 2021–2025</p>
-    <p>For educational use only. Official 2026 results will be published at <a href="https://neet.nta.nic.in" target="_blank">neet.nta.nic.in</a></p>
+    <p>Ensemble: GradientBoosting · RandomForest · XGBoost &nbsp;·&nbsp; NTA Data 2021–2025</p>
+    <p>Educational use only &nbsp;·&nbsp; Official results at <a href="https://neet.nta.nic.in" target="_blank">neet.nta.nic.in</a></p>
   </footer>
 
 </div>
@@ -621,28 +288,27 @@
   let selectedTop  = 720;
   let tableLoaded  = false;
   let tableOpen    = false;
+  let lastResult   = null; // store last prediction for submission
 
-  // ── Segmented controls ──────────────────────────────────
   function selectDiff(btn) {
     document.querySelectorAll('#diff-group .seg-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedDiff = btn.dataset.val;
+    tableLoaded = false;
   }
 
   function selectTop(btn) {
     document.querySelectorAll('#top-group .seg-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedTop = parseInt(btn.dataset.val);
+    tableLoaded = false;
   }
 
-  // ── Predict ─────────────────────────────────────────────
   async function predict() {
     const marks    = parseInt(document.getElementById('marks-slider').value);
     const appeared = parseFloat(document.getElementById('appeared').value);
     const btn      = document.getElementById('predict-btn');
-
     btn.classList.add('loading');
-
     try {
       const res = await fetch('/api/predict', {
         method: 'POST',
@@ -650,45 +316,97 @@
         body: JSON.stringify({ marks, appeared, difficulty: selectedDiff, top_score: selectedTop }),
       });
       if (!res.ok) throw new Error(await res.text());
-      const d = await res.json();
-      showResult(d);
-    } catch(e) {
+      lastResult = await res.json();
+      showResult(lastResult);
+      showRegisterCard();
+    } catch (e) {
       alert('Prediction failed: ' + e.message);
     } finally {
       btn.classList.remove('loading');
     }
   }
 
-  // ── Show result ─────────────────────────────────────────
   function showResult(d) {
-    document.getElementById('res-rank').textContent    = '#' + d.rank.toLocaleString('en-IN');
-    document.getElementById('res-range').textContent   = `Range: ${d.lower.toLocaleString('en-IN')} – ${d.upper.toLocaleString('en-IN')}`;
-    document.getElementById('res-pct').textContent     = d.percentile.toFixed(4) + '%';
-    document.getElementById('res-diff').textContent    = d.difficulty;
-    document.getElementById('res-score').textContent   = d.marks + ' / ' + d.top_score;
-    document.getElementById('res-appeared').textContent= d.appeared.toFixed(1) + 'L';
+    document.getElementById('res-rank').textContent     = '#' + d.rank.toLocaleString('en-IN');
+    document.getElementById('res-range').textContent    = d.lower.toLocaleString('en-IN') + ' – ' + d.upper.toLocaleString('en-IN');
+    document.getElementById('res-pct').textContent      = d.percentile.toFixed(4) + '%';
+    document.getElementById('res-diff').textContent     = d.difficulty;
+    document.getElementById('res-score').textContent    = d.marks + ' / ' + d.top_score;
+    document.getElementById('res-appeared').textContent = d.appeared.toFixed(1) + 'L';
 
     const cat = document.getElementById('res-cat');
-    cat.textContent = d.category;
-    cat.style.color = d.color;
-    cat.style.borderColor = d.color + '55';
-    cat.style.background  = d.color + '15';
+    cat.textContent       = d.category;
+    cat.style.color       = d.color;
+    cat.style.borderColor = d.color + '66';
+    cat.style.background  = d.color + '12';
 
-    // Rank bar (log scale looks better)
-    const maxRank = 1000000;
-    const pct = Math.max(1, Math.min(99, (1 - Math.log(d.rank) / Math.log(maxRank)) * 100));
-    document.getElementById('rank-bar').style.width  = pct + '%';
-    document.getElementById('rank-thumb').style.left = pct + '%';
+    const maxRank = 1_000_000;
+    const pct = Math.max(2, Math.min(98, (1 - Math.log(d.rank) / Math.log(maxRank)) * 100));
+    document.getElementById('rank-bar').style.width = pct + '%';
+    document.getElementById('result-panel').classList.add('visible');
+  }
 
-    const card = document.getElementById('result-card');
+  function showRegisterCard() {
+    const card = document.getElementById('register-card');
+    // Reset in case they predict again
+    document.getElementById('reg-form-body').style.display = 'block';
+    document.getElementById('success-msg').style.display   = 'none';
+    document.getElementById('reg-error').style.display     = 'none';
     card.classList.add('visible');
   }
 
-  // ── Rank Table ──────────────────────────────────────────
+  async function submitData() {
+    const name    = document.getElementById('reg-name').value.trim();
+    const college = document.getElementById('reg-college').value.trim();
+    const phone   = document.getElementById('reg-phone').value.trim();
+    const email   = document.getElementById('reg-email').value.trim();
+    const errEl   = document.getElementById('reg-error');
+
+    // Basic validation
+    if (!name || !college || !phone || !email) {
+      errEl.textContent = 'Please fill in all fields before saving.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = 'Please enter a valid email address.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    const marks = parseInt(document.getElementById('marks-slider').value);
+    const btn   = document.getElementById('submit-btn');
+    btn.classList.add('loading');
+
+    try {
+      const payload = {
+        name, college, phone, email, marks,
+        predicted_rank: lastResult ? lastResult.rank   : null,
+        category:       lastResult ? lastResult.category : null,
+      };
+      const res = await fetch('/api/submit', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      // Show success
+      document.getElementById('reg-form-body').style.display = 'none';
+      document.getElementById('success-name').textContent    = name.split(' ')[0];
+      document.getElementById('success-msg').style.display   = 'block';
+    } catch (e) {
+      errEl.textContent   = 'Failed to save: ' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.classList.remove('loading');
+    }
+  }
+
   async function toggleTable() {
     const wrap = document.getElementById('table-wrap');
     const btn  = document.getElementById('table-btn');
-
     if (!tableOpen) {
       if (!tableLoaded) await loadTable();
       wrap.classList.add('open');
@@ -704,27 +422,22 @@
   async function loadTable() {
     const appeared = parseFloat(document.getElementById('appeared').value);
     const url = `/api/batch?appeared=${appeared}&difficulty=${selectedDiff}&top_score=${selectedTop}`;
-    const res  = await fetch(url);
-    const rows = await res.json();
-
+    const rows = await (await fetch(url)).json();
     const tbody = document.getElementById('table-body');
     tbody.innerHTML = '';
     rows.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong>${r.marks}</strong></td>
-        <td>${r.rank.toLocaleString('en-IN')}</td>
-        <td style="color:#7B8299">${r.lower.toLocaleString('en-IN')} – ${r.upper.toLocaleString('en-IN')}</td>
-        <td><span class="dot" style="background:${r.color}"></span>${r.category}</td>
-      `;
+        <td>${r.marks}</td>
+        <td style="color:var(--text)">${r.rank.toLocaleString('en-IN')}</td>
+        <td>${r.lower.toLocaleString('en-IN')} – ${r.upper.toLocaleString('en-IN')}</td>
+        <td><span class="dot-sm" style="background:${r.color}"></span>${r.category}</td>`;
       tbody.appendChild(tr);
     });
     tableLoaded = true;
   }
 
-  // ── Auto-predict on Enter ────────────────────────────────
-  document.addEventListener('keydown', e => { if(e.key === 'Enter') predict(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') predict(); });
 </script>
-
 </body>
 </html>

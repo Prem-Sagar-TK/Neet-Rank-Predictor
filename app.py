@@ -4,18 +4,20 @@ app.py - FastAPI backend for NEET 2026 Rank Predictor
 ======================================================
 Run with:
     python app.py
-Then open http://localhost:8000 in your browser.
+Then open http://localhost:8001 in your browser.
 """
 
 import os
 import sys
+import sqlite3
+import datetime
 import numpy as np
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 
 _ROOT      = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +36,37 @@ if not os.path.exists(MODEL_PATH):
 meta     = joblib.load(MODEL_PATH)
 MODEL    = meta["model"]
 FEATURES = meta["features"]
+
+# ---------------------------------------------------------------
+# SQLite database setup
+# ---------------------------------------------------------------
+DB_PATH = os.path.join(_ROOT, "submissions.db")
+
+def get_db():
+    """Return a new SQLite connection (thread-local friendly)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    """Create the submissions table if it doesn't exist."""
+    with get_db() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS submissions (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT    NOT NULL,
+                college       TEXT    NOT NULL,
+                phone         TEXT    NOT NULL,
+                email         TEXT    NOT NULL,
+                marks         INTEGER NOT NULL,
+                predicted_rank INTEGER,
+                category      TEXT,
+                submitted_at  TEXT    DEFAULT (datetime('now','localtime'))
+            )
+        """)
+        conn.commit()
+
+init_db()
 
 # ---------------------------------------------------------------
 # Admission categories
@@ -86,6 +119,15 @@ class BatchItem(BaseModel):
     category:   str
     color:      str
 
+class SubmitRequest(BaseModel):
+    name:           str  = Field(..., min_length=2,  max_length=120)
+    college:        str  = Field(..., min_length=2,  max_length=200)
+    phone:          str  = Field(..., min_length=7,  max_length=15)
+    email:          str  = Field(..., min_length=5,  max_length=200)
+    marks:          int  = Field(..., ge=0, le=720)
+    predicted_rank: Optional[int]  = None
+    category:       Optional[str]  = None
+
 # ---------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------
@@ -116,8 +158,7 @@ def predict(req: PredictRequest):
         rank, lower, upper, diff_enc = _predict(
             req.marks, req.appeared, req.difficulty, req.top_score
         )
-        # Rough percentile: (appeared_lakhs*100000 - rank) / (appeared_lakhs*100000) * 100
-        total = req.appeared * 100000
+        total      = req.appeared * 100000
         percentile = round(max(0, (total - rank) / total * 100), 4)
         category, color = get_admission(rank)
         return PredictResponse(
@@ -128,6 +169,40 @@ def predict(req: PredictRequest):
             marks=req.marks, appeared=req.appeared,
             top_score=req.top_score,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/submit")
+def submit(req: SubmitRequest):
+    """Store a student's details + predicted rank in the database."""
+    try:
+        with get_db() as conn:
+            conn.execute(
+                """INSERT INTO submissions
+                   (name, college, phone, email, marks, predicted_rank, category)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (req.name, req.college, req.phone, req.email,
+                 req.marks, req.predicted_rank, req.category)
+            )
+            conn.commit()
+        return {"status": "ok", "message": "Submission saved."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/submissions")
+def list_submissions(limit: int = 100, offset: int = 0):
+    """Return all stored submissions (newest first)."""
+    try:
+        with get_db() as conn:
+            rows = conn.execute(
+                """SELECT id, name, college, phone, email, marks,
+                          predicted_rank, category, submitted_at
+                   FROM submissions
+                   ORDER BY id DESC
+                   LIMIT ? OFFSET ?""",
+                (limit, offset)
+            ).fetchall()
+        return [dict(r) for r in rows]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
